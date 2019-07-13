@@ -2,7 +2,6 @@
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "Knob.h"
-#include "SynthParameters.h"
 #include "Synth.h"
 
 //==============================================================================
@@ -11,7 +10,7 @@ class MainComponent : public AudioAppComponent,
 	private Timer
 {
 public:
-	MainComponent() : synthAudioSource(keyboardState, &parameters),
+	MainComponent() : synthAudioSource(keyboardState),
 		keyboardComponent(keyboardState, MidiKeyboardComponent::horizontalKeyboard)
 	{
 		Gui();
@@ -78,23 +77,12 @@ public:
 	void setWaveform(int index)
 	{
 		waveformList.setSelectedId(index + 1, dontSendNotification);
-		synthAudioSource.params->setWaveShape(index);
-		synthAudioSource.updateParameters();
+		synthAudioSource.updateWaveform(index);
 	}
 
 	void sliderValueChanged(Slider* slider) override
 	{
-		float value = (float)(slider->getValue());
-		if (slider == &volAttackSlider)
-			synthAudioSource.params->attackTime = value;
-		else if (slider == &volDecaySlider)
-			synthAudioSource.params->decayTime = value;
-		else if (slider == &volSustainSlider)
-			synthAudioSource.params->sustainLevel = value;
-		else if (slider == &volReleaseSlider)
-			synthAudioSource.params->releaseTime = value;
-
-		synthAudioSource.updateParameters();
+		synthAudioSource.updateEnvelope(volAttackSlider.getValue(), volDecaySlider.getValue(), volSustainSlider.getValue(), volReleaseSlider.getValue());
 	}
 
 	//==============================================================================
@@ -355,8 +343,6 @@ private:
 	ComboBox midiInputList;
 	Label midiInputListLabel;
 	int lastInputIndex = 0;
-
-	SynthParameters parameters;
 
 	//==============================================================================
 	Label volEnvLabel;

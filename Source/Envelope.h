@@ -17,7 +17,7 @@ public:
 
 	void reset() { trigger = 0; }
 
-	void triggerNote() { trigger = 1; }
+	void triggerNote() { output = 0.0f; trigger = 1; }
 
 	void releaseNote() { trigger = 4; }
 

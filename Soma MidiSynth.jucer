@@ -9,8 +9,6 @@
       <FILE id="c1wxFG" name="Oscillator.h" compile="0" resource="0" file="Source/Oscillator.h"/>
       <FILE id="EjA2GZ" name="Envelope.h" compile="0" resource="0" file="Source/Envelope.h"/>
       <FILE id="noHBQg" name="Knob.h" compile="0" resource="0" file="Source/Knob.h"/>
-      <FILE id="CycInQ" name="SynthParameters.h" compile="0" resource="0"
-            file="Source/SynthParameters.h"/>
     </GROUP>
   </MAINGROUP>
   <EXPORTFORMATS>

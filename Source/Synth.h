@@ -3,7 +3,6 @@
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "Oscillator.h"
 #include "Envelope.h"
-#include "SynthParameters.h"
 
 //==============================================================================
 struct SynthSound : public SynthesiserSound
@@ -68,7 +67,7 @@ struct SynthVoice : public SynthesiserVoice
 			{
 				while (--numSamples >= 0)
 				{
-					auto currentSample = (float)(std::sin(currentAngle) * level * tailOff * env.adsr(getSampleRate()));
+					auto currentSample = (float)(osc.oscillate(currentAngle) * level * tailOff * env.adsr(getSampleRate()));
 
 					for (auto i = outputBuffer.getNumChannels(); --i >= 0;)
 						outputBuffer.addSample(i, startSample, currentSample);
@@ -91,7 +90,7 @@ struct SynthVoice : public SynthesiserVoice
 			{
 				while (--numSamples >= 0)
 				{
-					auto currentSample = (float)(std::sin(currentAngle) * level * env.adsr(getSampleRate()));
+					auto currentSample = (float)(osc.oscillate(currentAngle) * level * env.adsr(getSampleRate()));
 
 					for (auto i = outputBuffer.getNumChannels(); --i >= 0;)
 						outputBuffer.addSample(i, startSample, currentSample);
@@ -103,13 +102,17 @@ struct SynthVoice : public SynthesiserVoice
 		}
 	}
 
-	void updateParameters(SynthParameters* params)
+	void updateEnvelope(double attack, double decay, double sustain, double release)
 	{
-		env.attack = params->attackTime;
-		env.decay = params->decayTime;
-		env.sustain = params->sustainLevel;
-		env.release = params->releaseTime;
-		osc.currentWaveShape = params->selectedWave;
+		env.attack = attack;
+		env.decay = decay;
+		env.sustain = sustain;
+		env.release = release;
+	}
+
+	void updateWaveform(int index)
+	{
+		osc.updateWaveshape(index);
 	}
 
 private:
@@ -123,13 +126,21 @@ private:
 class Synth : public Synthesiser
 {
 public:
-	void parameterChanged(SynthParameters* params)
+	void updateWaveform(int index)
 	{
 		for (int i = 0; i < voices.size(); ++i)
 		{
 			SynthVoice* const voice = dynamic_cast<SynthVoice*>(voices.getUnchecked(i));
-			if (voice->isVoiceActive())
-				voice->updateParameters(params);
+			voice->updateWaveform(index);
+		}
+	}
+
+	void updateEnvelope(double attack, double decay, double sustain, double release)
+	{
+		for (int i = 0; i < voices.size(); ++i)
+		{
+			SynthVoice* const voice = dynamic_cast<SynthVoice*>(voices.getUnchecked(i));
+			voice->updateEnvelope(attack, decay, sustain, release);
 		}
 	}
 };
@@ -138,10 +149,9 @@ public:
 class SynthAudioSource : public AudioSource
 {
 public:
-	SynthAudioSource(MidiKeyboardState& keyState, SynthParameters* paramsPtr)
+	SynthAudioSource(MidiKeyboardState& keyState)
 		: keyboardState(keyState)
 	{
-		params = paramsPtr;
 
 		for (auto i = 0; i < 4; ++i)
 			synth.addVoice(new SynthVoice());
@@ -149,9 +159,14 @@ public:
 		synth.addSound(new SynthSound());
 	}
 
-	void updateParameters()
+	void updateWaveform(int index)
 	{
-		synth.parameterChanged(params);
+		synth.updateWaveform(index);
+	}
+
+	void updateEnvelope(double attack, double decay, double sustain, double release)
+	{
+		synth.updateEnvelope(attack, decay, sustain, release);
 	}
 
 	void setUsingSineWaveSound()
@@ -184,9 +199,6 @@ public:
 	{
 		return &midiCollector;
 	}
-
-public:
-	SynthParameters* params;
 
 private:
 	MidiKeyboardState & keyboardState;

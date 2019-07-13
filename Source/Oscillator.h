@@ -1,6 +1,8 @@
 #pragma once
 
 #include "../JuceLibraryCode/JuceHeader.h"
+//==============================================================================
+enum WaveShape { sineWave, sawWave, squareWave, triangleWave, noiseWave };
 
 //==============================================================================
 class Oscillator : public Component
@@ -15,50 +17,75 @@ public:
 		output = 0.0;
 	}
 
-	float oscillate()
+	void updateWaveshape(int index)
+	{
+		switch (index)
+		{
+		case 1:
+			currentWaveShape = sineWave;
+		case 2:
+			currentWaveShape = sawWave;
+		case 3:
+			currentWaveShape = squareWave;
+		case 4:
+			currentWaveShape = triangleWave;
+		case 5:
+			currentWaveShape = noiseWave;
+		}
+	}
+
+	double oscillate(double currentAngle)
 	{
 		switch (currentWaveShape)
 		{
 		case sineWave:
-			return sine();
+			return sine(currentAngle);
 		case sawWave:
-			return saw();
+			return saw(currentAngle);
 		case squareWave:
-			return square();
+			return square(currentAngle);
 		case triangleWave:
-			return triangle();
-		case noiseWave: return noise();
-		default: return sine();
+			return triangle(currentAngle);
+		case noiseWave: return noise(currentAngle);
+		default: 
+			return sine(currentAngle);
 		}
 	}
 
-	float sine()
+	double sine(double currentAngle)
+	{
+		return std::sin(currentAngle);
+	}
+
+	double saw(double currentAngle)
 	{
 		// To Do
 		return 0.0;
 	}
 
-	float saw()
+	double square(double currentAngle)
 	{
-		// To Do
-		return 0.0;
+		// Not Working
+		if (std::fmod(currentAngle, 2.0 * MathConstants<double>::pi) >= MathConstants<double>::pi)
+		{
+			return -1.0;
+		}
+		else {
+			return 1.0;
+		}
 	}
 
-	float square()
-	{
-		// To Do
-		return 0.0;
-	}
-
-	float triangle()
+	double triangle(double currentAngle)
 	{
 		// To do
 		return 0.0;
 	}
 
-	float noise()
+	double noise(double currentAngle)
 	{
-		return 0.0;
+		float r = rand() / (float)RAND_MAX;
+		output = r * 2 - 1;
+		return(output);
 	}
 
 	void setTime(float t) { time = t; }
