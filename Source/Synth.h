@@ -27,14 +27,14 @@ struct SynthVoice : public SynthesiserVoice
 	void startNote(int midiNoteNumber, float velocity,
 		SynthesiserSound*, int /*currentPitchWheelPosition*/) override
 	{
-		currentAngle = 0.0;
+		osc.clearTime();
 		level = velocity * 0.15;
 		tailOff = 0.0;
 
 		auto cyclesPerSecond = MidiMessage::getMidiNoteInHertz(midiNoteNumber);
 		auto cyclesPerSample = cyclesPerSecond / getSampleRate();
 
-		angleDelta = cyclesPerSample * 2.0 * MathConstants<double>::pi;
+		osc.setDeltaTime(cyclesPerSample);
 		
 		env.reset();
 		env.triggerNote();
@@ -43,17 +43,6 @@ struct SynthVoice : public SynthesiserVoice
 	void stopNote(float /*velocity*/, bool allowTailOff) override
 	{
 		env.releaseNote();
-
-		if (allowTailOff)
-		{
-			if (tailOff == 0.0)
-				tailOff = 1.0;
-		}
-		else
-		{
-			clearCurrentNote();
-			angleDelta = 0.0;
-		}
 	}
 
 	void pitchWheelMoved(int) override {}
@@ -61,43 +50,16 @@ struct SynthVoice : public SynthesiserVoice
 
 	void renderNextBlock(AudioSampleBuffer& outputBuffer, int startSample, int numSamples) override
 	{
-		if (angleDelta != 0.0)
+		if (osc.getDeltaTime() != 0.0)
 		{
-			if (tailOff > 0.0)
+			while (--numSamples >= 0)
 			{
-				while (--numSamples >= 0)
-				{
-					auto currentSample = (float)(osc.oscillate(currentAngle) * level * tailOff * env.adsr(getSampleRate()));
+				auto currentSample = (float)(osc.oscillate() * level * env.adsr(getSampleRate()));
 
-					for (auto i = outputBuffer.getNumChannels(); --i >= 0;)
-						outputBuffer.addSample(i, startSample, currentSample);
+				for (auto i = outputBuffer.getNumChannels(); --i >= 0;)
+					outputBuffer.addSample(i, startSample, currentSample);
 
-					currentAngle += angleDelta;
-					++startSample;
-
-					tailOff *= 0.99;
-
-					if (tailOff <= 0.005)
-					{
-						clearCurrentNote();
-
-						angleDelta = 0.0;
-						break;
-					}
-				}
-			}
-			else
-			{
-				while (--numSamples >= 0)
-				{
-					auto currentSample = (float)(osc.oscillate(currentAngle) * level * env.adsr(getSampleRate()));
-
-					for (auto i = outputBuffer.getNumChannels(); --i >= 0;)
-						outputBuffer.addSample(i, startSample, currentSample);
-
-					currentAngle += angleDelta;
-					++startSample;
-				}
+				++startSample;
 			}
 		}
 	}
